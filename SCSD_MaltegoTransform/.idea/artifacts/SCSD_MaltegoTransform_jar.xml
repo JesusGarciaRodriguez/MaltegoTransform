@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="SCSD_MaltegoTransform:jar">
+    <output-path>$PROJECT_DIR$/target/artifacts/SCSD_MaltegoTransform_jar</output-path>
+    <root id="archive" name="SCSD_MaltegoTransform.jar">
+      <element id="module-output" name="SCSD_MaltegoTransform" />
+    </root>
+  </artifact>
+</component>
