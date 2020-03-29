@@ -17,28 +17,23 @@ import java.util.regex.Pattern;
 public class DirectoryParser {
 
     private static final String URL="https://www.um.es/atica/directorio/";
+    private static final String TAG = "<.*?>";
 
-    private static final String NUM_RESULT ="Encontradas (\\s*|<strong>)[0-9]+(\\s*|</strong>) entradas";
-    private static final String TABLA_MULTIPLE_REGEX ="Personas.*?<table.*?>";
-    private static final String HREF_REGEX="<\\s*a\\s+href=['\"]([?a-zA-Z0-9@:%._+~=&]+)['\"].*?>";
+    private static final Pattern NUM_RESULT = Pattern.compile("Encontradas (\\s*|<strong>)[0-9]+(\\s*|</strong>) entradas");
+    private static final Pattern TABLA_MULTIPLE_REGEX = Pattern.compile("Personas.*?<table.*?>");
+    private static final Pattern HREF_REGEX = Pattern.compile("<\\s*a\\s+href=['\"]([?a-zA-Z0-9@:%._+~=&]+)['\"].*?>");
 
-    private static final String TABLA_DATOS_NAME="infoElem";
-    private static final String TABLA_DATOS_REGEX=TABLA_DATOS_NAME+"[^>]*>(.*?)</table>"; //TODO, Ojo, si hay table en medio no vale (parece que basta en single person)
+    private static final Pattern TABLA_DATOS_REGEX = Pattern.compile("infoElem[^>]*>(.*?)</table>"); //Enough for single result
+    private static final Pattern ENTRADA_TABLA = Pattern.compile("<tr>(.*?)</tr>"); //Enough for single result
 
-    private static final String ENTRADA_TABLA="<tr>(.*?)</tr>"; //TODO, Ojo, si hay tr en medio no vale (en single person esto basta)
-
-    private static final String TAG="<.*?>";
-    private static final String DATA_REGEX="(.+?):\\s*(.+)";
-    private static final String MAIL_FUNCTION_REGEX="correo\\(['\"](.*?)['\"],['\"](.*?)['\"],.*?\\)";
-    private static final String TLFN_REGEX="(\\+34 )?\\d{9}";
-    private static final String ACUTE_REGEX="&([a-zA-Z])acute;";
-    //TODO tal vez todos los Pattern compile aqui?
-
+    private static final Pattern DATA_REGEX = Pattern.compile("(.+?):\\s*(.+)");
+    private static final Pattern MAIL_FUNCTION_REGEX = Pattern.compile("correo\\(['\"](.*?)['\"],['\"](.*?)['\"],.*?\\)");
+    private static final Pattern TLFN_REGEX = Pattern.compile("(\\+34 )?\\d{9}");
+    private static final Pattern ACUTE_REGEX = Pattern.compile("&([a-zA-Z])acute;");
 
     public static Map<String, String> getInfo(String page, String mail) {
         Map<String,String> information=new HashMap<>();
-        Pattern pat = Pattern.compile(NUM_RESULT);
-        Matcher mat = pat.matcher(page);
+        Matcher mat = NUM_RESULT.matcher(page);
         try {
             if(mat.find())
                 information=getInfoMultipleResults(page,mail);
@@ -46,36 +41,30 @@ public class DirectoryParser {
                 information= getInfoSingleResult(page,mail);
         } catch (ParsingException | DifferentMailException e) {
             System.err.println("No info");
-            //TODO Message?, Different treatment?
         }
         return information;
     }
 
     private static Map<String, String> getInfoMultipleResults(String page, String mail) throws ParsingException {
         Map<String,String> properties=new HashMap<>();
-        Pattern pat = Pattern.compile(TABLA_MULTIPLE_REGEX);
-        Matcher mat = pat.matcher(page);
+        Matcher mat = TABLA_MULTIPLE_REGEX.matcher(page);
         if(!mat.find())
             throw new ParsingException("Mail not found in directory");
         String table=getField("table",page.substring(mat.start()));
-        //System.err.println(table);
         String tableEntry=getField("tr",table);
         Pattern auxPat=Pattern.compile("<table.*?>");
         Matcher auxMat=auxPat.matcher(table);
         auxMat.find();
-        String parsingTable=table.substring(auxMat.end()); //All except <table> to correctly extract and remove fields
-        //System.err.println(table);
-        //System.err.println(parsingTable);
-        boolean found=false; //Si una de las entradas es de la persona buscada, las demás no
+        String parsingTable=table.substring(auxMat.end()); //All except <table...> to correctly extract and remove fields
+        boolean found=false; //Once we find a correct entry, the others are not needed
         while (!tableEntry.equals("") && !found){
             try {
                 properties=getInfoPerson(tableEntry,mail);
                 found=true;
             } catch (DifferentMailException | ParsingException | IOException e) {
-                //TODO Maybe do something
+                //Ignore invalid entries
             }
-            parsingTable=parsingTable.substring(tableEntry.length()); //Eliminate parsed entry
-            //System.err.println(parsingTable);
+            parsingTable=parsingTable.substring(tableEntry.length()); //Delete parsed entry from string
             tableEntry=getField("tr",parsingTable);
         }
         return properties;
@@ -83,11 +72,9 @@ public class DirectoryParser {
 
     private static Map<String, String> getInfoPerson(String tableEntry,String mail) throws ParsingException, DifferentMailException, IOException {
         Map<String,String> properties=new HashMap<>();
-        Pattern pat=Pattern.compile(HREF_REGEX);
-        Matcher mat=pat.matcher(tableEntry);
+        Matcher mat=HREF_REGEX.matcher(tableEntry);
         int count=0;
         while(mat.find()){
-            //System.err.println(mat.group(1));
             Map<String,String> someProperties=getInfoSingleResult(getPageAsHtmlString(new URL(URL+mat.group(1))),mail);
             for(String key:someProperties.keySet())
                 properties.put(key+count,someProperties.get(key));
@@ -97,14 +84,12 @@ public class DirectoryParser {
     }
 
     private static Map<String, String> getInfoSingleResult(String page, String mail) throws ParsingException, DifferentMailException {
-        Pattern pat = Pattern.compile(TABLA_DATOS_REGEX);
-        Matcher mat = pat.matcher(page);
+        Matcher mat = TABLA_DATOS_REGEX.matcher(page);
         if(!mat.find())
             throw new ParsingException("Table not found");
         String table=mat.group(1);
         Map<String,String> properties=new HashMap<>();
-        Pattern pat2=Pattern.compile(ENTRADA_TABLA);
-        Matcher mat2=pat2.matcher(table);
+        Matcher mat2=ENTRADA_TABLA.matcher(table);
         while (mat2.find()){
             try {
                 String[] prop=extractProperty(mat2.group(1));
@@ -122,13 +107,11 @@ public class DirectoryParser {
         String[] res=new String[2];
         String parsed=tableEntry.replaceAll(TAG," ");
         parsed=parsed.replaceAll("\\s\\s+"," ").trim();
-        Pattern pat=Pattern.compile(DATA_REGEX);
-        Matcher mat=pat.matcher(parsed);
+        Matcher mat=DATA_REGEX.matcher(parsed);
         if(!mat.matches()){
-            Pattern patTlfn=Pattern.compile(TLFN_REGEX);
-            Matcher matTlfn=patTlfn.matcher(parsed);
+            Matcher matTlfn=TLFN_REGEX.matcher(parsed);
             if(matTlfn.matches()){
-                res[0]="Telefono"+parsed.hashCode(); //Por si hay mas de 2 telefonos, si no poner Telefono2 y ya
+                res[0]="Telefono"+parsed.hashCode();
                 res[1]=parsed;
                 return res;
             }
@@ -136,8 +119,7 @@ public class DirectoryParser {
                 throw new ParsingException("Not a data field");
         }
         res[0]=mat.group(1);
-        Pattern patMail=Pattern.compile(MAIL_FUNCTION_REGEX);
-        Matcher matMail=patMail.matcher(mat.group(2));
+        Matcher matMail=MAIL_FUNCTION_REGEX.matcher(mat.group(2));
         if(matMail.matches()){
             res[1]=recoverEmail(matMail.group(1),matMail.group(2));
         }
@@ -155,7 +137,7 @@ public class DirectoryParser {
         Pattern patClose= Pattern.compile(closeTag);
         Pattern patOr= Pattern.compile(openTag+"|"+closeTag);
         Matcher matOr=patOr.matcher(htmlText);
-        if(!matOr.find()) //Si no hay de ese field devuelves vacio, usado para iterar entradas de la tabla
+        if(!matOr.find()) //If no field present return empty string, useful for parsing successive entries
             return "";
         if(!patOpen.matcher(matOr.group(0)).matches())
             throw new RuntimeException("The first tag found is not an opening tag for the field");
@@ -185,7 +167,7 @@ public class DirectoryParser {
         HttpsURLConnection con = (HttpsURLConnection) myurl.openConnection();
         con.setRequestProperty ( "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Gecko/20100101 Firefox/63.0");
         InputStream ins = con.getInputStream();
-        InputStreamReader isr = new InputStreamReader(ins,"ISO-8859-1"); //La página está en ese encoding
+        InputStreamReader isr = new InputStreamReader(ins,"ISO-8859-1"); //Page uses this encoding
         BufferedReader in = new BufferedReader(isr);
         String inputLine;
         String page="";
@@ -193,10 +175,9 @@ public class DirectoryParser {
             page+=inputLine.trim();
         }
         in.close();
-        page=StringUtils.stripAccents(page);
-        Pattern pat=Pattern.compile(ACUTE_REGEX);
-        Matcher mat=pat.matcher(page);
-        page=mat.replaceAll("$1");
+        page=StringUtils.stripAccents(page);    // Delete accents except for the field Curriculum that works differently for some reason
+        Matcher mat=ACUTE_REGEX.matcher(page);
+        page=mat.replaceAll("$1"); // Correct Curriculum field
         return page;
     }
 

@@ -16,9 +16,6 @@ public class EntityExtractor {
         List<MaltegoEntity> entityList=new LinkedList<>();
         entityList.add(new MaltegoEntity("maltego.Domain","um.es"));
         entityList.add(new MaltegoEntity("jesus.University","Universidad de Murcia"));
-        //for(String key:properties.keySet()){
-          //  entityList.add(new MaltegoEntity("maltego.Alias", properties.get(key)));
-       // }
         entityList.addAll(extractMails(properties,mail));
         entityList.addAll(extractPhoneNumbers(properties));
         entityList.addAll(extractOfficialPost(properties));
@@ -35,7 +32,7 @@ public class EntityExtractor {
                 .map(e->e.getValue())
                 .filter(e->!e.equals(mail))
                 .distinct()
-                .map(web-> new MaltegoEntity("maltego.Website", web))
+                .map(web-> new MaltegoEntity("maltego.EmailAddress", web))
                 .collect(Collectors.toList());
         return entities;
     }
@@ -44,16 +41,14 @@ public class EntityExtractor {
         List<MaltegoEntity> entities=new LinkedList<>();
         List<String> filiations=properties.entrySet().stream()
                 .filter(e-> e.getKey().contains("Filiacion"))
-                .sorted(Comparator.comparing(Map.Entry::getKey)) //Sort by key (que son iguales excepto un numero al final en orden)
+                .sorted(Comparator.comparing(Map.Entry::getKey)) //Sort by key (equal except number at the end that identifies them)
                 .map(e->e.getValue())
                 .collect(Collectors.toList());
         List<String> units=properties.entrySet().stream()
                 .filter(e-> e.getKey().contains("Unidad Organizativa"))
-                .sorted(Comparator.comparing(Map.Entry::getKey)) //Sort by key (que son iguales excepto un numero al final en orden)
+                .sorted(Comparator.comparing(Map.Entry::getKey)) //Sort by key (equal except number at the end that identifies them)
                 .map(e->e.getValue())
                 .collect(Collectors.toList());
-        //System.err.println(filiations.size());
-        //System.err.println(units.size());
         if(filiations.size()==units.size()){ //If they are not equal something wrong happened
             for(int i=0;i<filiations.size();i++){
                 MaltegoEntity entity=new MaltegoEntity("jesus.Filiation",capitalize(filiations.get(i)));
@@ -80,7 +75,7 @@ public class EntityExtractor {
         Optional<String> centro=properties.entrySet().stream()
                 .filter(e->e.getKey().contains("Centro"))
                 .map(e->e.getValue())
-                .findFirst();           //Centro es siempre el mismo, por eso simplemente el primero (podría hacerse de otra forma)
+                .findFirst();           //Centro is always the same, we just take one (could be done in other ways)
         if(centro.isPresent()){
             Pattern pat=Pattern.compile(CENTRO_REGEX);
             Matcher mat=pat.matcher(centro.get());
@@ -94,7 +89,7 @@ public class EntityExtractor {
                 Optional<String> despacho=properties.entrySet().stream()
                         .filter(e->e.getKey().contains("Despacho"))
                         .map(e->e.getValue())
-                        .findFirst();            //Despacho es siempre el mismo, por eso simplemente el primero (podría hacerse de otra forma)
+                        .findFirst();            //Despacho is always the same, we just take one (could be done in other ways)
                 if(despacho.isPresent()){
                     MaltegoEntity entityOffice=new MaltegoEntity("jesus.Office","pavo");
                     entityOffice.addProperty("officecode","OfficeCode",MATCHING_RULE,despacho.get());

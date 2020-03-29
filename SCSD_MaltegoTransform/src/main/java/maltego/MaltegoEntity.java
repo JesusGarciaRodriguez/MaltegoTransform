@@ -13,7 +13,6 @@ import java.util.List;
  * @author miragshin
  */
 public class MaltegoEntity {
-    //TODO Codigo mas bonito?
 
     List<List<String>> additionalFields = new ArrayList<>();
     String weight = "100";
