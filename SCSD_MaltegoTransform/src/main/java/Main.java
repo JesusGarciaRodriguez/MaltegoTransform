@@ -19,32 +19,34 @@ public class Main {
 
 	
 	public static void main(String[] args) throws Exception {
-		String mail=UNOSOLO;
-		if(args.length>0)
-			mail=args[0];
-		MaltegoTransform mt=new MaltegoTransform();
-		if(!validMail(mail))
-			mt.throwException("Invalid mail. The domain has to be um.es");
-		else {
-			URL myurl = new URL(URL_SEARCH + mail);
-			String page = getPageAsHtmlString(myurl);
-			//String page =readFile(mail);
-			//System.err.println(page);
-			Map<String, String> extractedData = getInfo(page, mail);
-			/*for(String key:extractedData.keySet())
-				System.err.println(key+" "+extractedData.get(key));*/
-			if (extractedData.size() == 0) {
-				MaltegoEntity e = new MaltegoEntity("maltego.EmailAddress", mail);
-				e.setNote("Mail not in directory");
-				mt.addEntity(e);
-				mt.returnOutput();
-			} else {
-				List<MaltegoEntity> entities = extractEntities(extractedData);
-				for (MaltegoEntity e : entities)
-					mt.addEntity(e);
-				mt.returnOutput();
-			}
-		}
+        MaltegoTransform mt=new MaltegoTransform();
+		if(args.length==0)
+            mt.throwException("No input for the transform");
+		else{
+            String mail=args[0];
+            if(!validMail(mail))
+                mt.throwException("Invalid mail. The domain has to be um.es");
+            else {
+                URL myurl = new URL(URL_SEARCH + mail);
+                String page = getPageAsHtmlString(myurl);
+                //String page =readFile(mail);
+                //System.err.println(page);
+                Map<String, String> extractedData = getInfo(page, mail);
+                //for(String key:extractedData.keySet())
+                //System.err.println(key+" "+extractedData.get(key));
+                if (extractedData.size() == 0) {
+                    MaltegoEntity e = new MaltegoEntity("maltego.EmailAddress", mail);
+                    e.setNote("Mail not in directory");
+                    mt.addEntity(e);
+                    mt.returnOutput();
+                } else {
+                    List<MaltegoEntity> entities = extractEntities(extractedData,mail);
+                    for (MaltegoEntity e : entities)
+                        mt.addEntity(e);
+                    mt.returnOutput();
+                }
+            }
+        }
 	}
 
 	private static boolean validMail(String mail) {

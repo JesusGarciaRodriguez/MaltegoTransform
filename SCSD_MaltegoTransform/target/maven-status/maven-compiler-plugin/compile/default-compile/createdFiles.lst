@@ -1,0 +1,8 @@
+Main.class
+exceptions\ParsingException.class
+maltego\MaltegoEntity.class
+utilities\DirectoryParser.class
+exceptions\DifferentMailException.class
+utilities\EntityExtractor.class
+maltego\MaltegoUiMessage.class
+maltego\MaltegoTransform.class

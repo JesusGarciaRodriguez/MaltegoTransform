@@ -2,10 +2,12 @@ package utilities;
 
 import exceptions.DifferentMailException;
 import exceptions.ParsingException;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
+import java.text.Normalizer;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +30,8 @@ public class DirectoryParser {
     private static final String TAG="<.*?>";
     private static final String DATA_REGEX="(.+?):\\s*(.+)";
     private static final String MAIL_FUNCTION_REGEX="correo\\(['\"](.*?)['\"],['\"](.*?)['\"],.*?\\)";
+    private static final String TLFN_REGEX="(\\+34 )?\\d{9}";
+    private static final String ACUTE_REGEX="&([a-zA-Z])acute;";
     //TODO tal vez todos los Pattern compile aqui?
 
 
@@ -81,10 +85,13 @@ public class DirectoryParser {
         Map<String,String> properties=new HashMap<>();
         Pattern pat=Pattern.compile(HREF_REGEX);
         Matcher mat=pat.matcher(tableEntry);
+        int count=0;
         while(mat.find()){
             //System.err.println(mat.group(1));
             Map<String,String> someProperties=getInfoSingleResult(getPageAsHtmlString(new URL(URL+mat.group(1))),mail);
-            properties.putAll(someProperties); //TODO Better integration of values
+            for(String key:someProperties.keySet())
+                properties.put(key+count,someProperties.get(key));
+            count++;
         }
         return properties;
     }
@@ -118,7 +125,15 @@ public class DirectoryParser {
         Pattern pat=Pattern.compile(DATA_REGEX);
         Matcher mat=pat.matcher(parsed);
         if(!mat.matches()){
-            throw new ParsingException("Not a data field");
+            Pattern patTlfn=Pattern.compile(TLFN_REGEX);
+            Matcher matTlfn=patTlfn.matcher(parsed);
+            if(matTlfn.matches()){
+                res[0]="Telefono"+parsed.hashCode(); //Por si hay mas de 2 telefonos, si no poner Telefono2 y ya
+                res[1]=parsed;
+                return res;
+            }
+            else
+                throw new ParsingException("Not a data field");
         }
         res[0]=mat.group(1);
         Pattern patMail=Pattern.compile(MAIL_FUNCTION_REGEX);
@@ -178,6 +193,11 @@ public class DirectoryParser {
             page+=inputLine.trim();
         }
         in.close();
+        page=StringUtils.stripAccents(page);
+        Pattern pat=Pattern.compile(ACUTE_REGEX);
+        Matcher mat=pat.matcher(page);
+        page=mat.replaceAll("$1");
         return page;
     }
+
 }
