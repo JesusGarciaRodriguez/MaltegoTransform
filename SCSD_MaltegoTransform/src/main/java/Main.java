@@ -13,7 +13,7 @@ import static utilities.EntityExtractor.extractEntities;
 public class Main {
 
 	private static final String URL_SEARCH="https://www.um.es/atica/directorio/?nivel=&lang=0&vista=unidades&search=";
-	private static final String VALID_MAIL_REGEX="[a-zA-Z._0-9\\-]+@um.es";
+	private static final String VALID_MAIL_REGEX="[a-zA-ZÑñ._0-9\\-]+@um.es";
 	
 	public static void main(String[] args) throws Exception {
         MaltegoTransform mt=new MaltegoTransform();
