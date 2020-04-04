@@ -71,9 +71,9 @@ public class EntityExtractor {
                 .sorted(Comparator.comparing(Map.Entry::getKey)) //Sort by key (equal except number at the end that identifies them)
                 .map(e->e.getValue())
                 .collect(Collectors.toList());
-        if(filiations.size()==units.size()){ //If they are not equal something wrong happened
+        if(filiations.size()==units.size()){ //If they are not equal something wrong happened, nothing added
             for(int i=0;i<filiations.size();i++){
-                MaltegoEntity entity=new MaltegoEntity("jesus.Filiation",capitalize(filiations.get(i)));
+                MaltegoEntity entity=new MaltegoEntity("jesus.Affiliation",capitalize(filiations.get(i)));
                 entity.addProperty("unit","Organizational unit",MATCHING_RULE,capitalize(units.get(i)));
                 entity.addProperty("organization","Organization",MATCHING_RULE,"Universidad de Murcia");
                 entities.add(entity);

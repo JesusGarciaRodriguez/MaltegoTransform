@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
-import java.text.Normalizer;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
